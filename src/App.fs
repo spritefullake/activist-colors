@@ -124,20 +124,24 @@ let drawDecide vector positions =
 
         Seq.append [final] positions 
 
+let fillIn (ctx: Context) points color =
+  ctx.beginPath()
+  ctx.fillStyle <- color
+  for point in points do
+    ctx.lineTo(point)
+  ctx.fill()
 
 let rec fillRect positions =
-  match positions |> Seq.toList with
-  |  [] -> ()
-  |  _ -> 
-      let points = Seq.take 3 positions
-      ctx.beginPath()
-      for point in points do
-        ctx.lineTo(point)
-      ctx.fillStyle <- !^"blue"
-      ctx.fill()
-      Seq.skip 2 positions |> fillRect
+  let minPoints = 3
+  let gapPoint = 2
+  if Seq.length positions < minPoints then
+    ()
+  else
+    let points = Seq.take minPoints positions
+    fillIn ctx points !^"blue"
+    Seq.skip gapPoint positions |> fillRect
 
-let drawSquare (ctx: Context) length colors =
+let drawSquare (ctx: Context) (x, y) length colors =
   ctx.beginPath()
   let lengths = [
     (length, length)
@@ -148,28 +152,37 @@ let drawSquare (ctx: Context) length colors =
   let zipped = Seq.zip colors lengths
   for color, (l1,l2) in zipped do
     ctx.fillStyle <- color
-    ctx.fillRect(200.,200.,l1,l2)
+    ctx.fillRect(x, y, l1,l2)
     
-
 
 ctx.lineWidth <- 2.0
 
 let origin = seq{ (200., 200.) }
 let reducer position i =
   drawDecide i position
-let rotations = rotationalCut 4 100.
+let rotations = rotationalCut 6 100.
 rotations
 |> Seq.fold reducer origin
-|> (fun x -> ctx.stroke(); x)
+|> Seq.skip 1
+//|> (fun x -> ctx.stroke(); printfn "AFTER ITER: %A" x; x)
+|> fillRect
 //|> Seq.length |> printfn "%d"
 
-let profileColors = seq {
-  !^"#DB0401"
-  !^"#1B628E"
-  !^"#56A1E4"
-  !^"#56A1E4"
+//let profileColors = seq {
+  //!^"#DB0401"
+  //!^"#1B628E"
+ // !^"#56A1E4"
+  //!^"#56A1E4"
+//}
+
+let originPoint = Seq.head origin
+//drawSquare ctx originPoint 50. profileColors
+let myPoints = seq {
+  (300.,200.)
+  originPoint
+  (200.,300.)
 }
-drawSquare ctx 50. profileColors
+//fillIn ctx myPoints !^"#DB0401"
 
 ctx.strokeStyle <- !^"red"
 ctx.stroke()
