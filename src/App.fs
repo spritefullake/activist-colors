@@ -65,6 +65,13 @@ let rotationalCut (sections: int) length =
                    }
     }
 
+let isContinuous x = 
+  match x with 
+  | Continuous _ -> true
+  | _ -> false
+
+let polygonalCut (sides : int) = rotationalCut sides >> Seq.filter isContinuous
+
 let verticalCut (sections: int) spacing length =
     let cut = { radius = length; angle = Math.PI / 2. }
     let move = { radius = spacing; angle = 0.0 }
@@ -94,7 +101,7 @@ let printMove =
         printfn "Destination is %f %f" <|| x
         x)
 
-let rotations = verticalCut 4 20. 100.
+let rotations = polygonalCut 5 100.
 
 let reset (ctx: Context) (x, y) = ctx.moveTo (x, y)
 
@@ -117,8 +124,6 @@ let drawDecide i position =
 ctx.lineWidth <- 2.0
 
 let origin = (200., 200.)
-let x0, y0 = origin
-let mutable n = 1.0
 
 let reducer position i =
   drawDecide i position
