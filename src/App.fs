@@ -79,14 +79,12 @@ let verticalCut (sections: int) spacing length =
     seq {
         for i in 0.0 .. (float sections) do
             yield! seq {
-                       Continuous cut
+                       Continuous cut 
                        Discontinuous empty
                        Discontinuous move
                    }
     }
 
-
-let draw (ctx: Context) (x, y, bearing) = ctx.lineTo (x, y)
 // resize our canvas to the size of our grid
 // the arrow <- indicates we're mutating a value. It's a special operator in F#.
 myCanvas.width <- gridWidth
@@ -96,40 +94,83 @@ myCanvas.height <- gridWidth
 printfn "%i" steps
 
 
-let printMove =
-    (fun x ->
-        printfn "Destination is %f %f" <|| x
-        x)
-
-let rotations = polygonalCut 5 100.
+let printMove vector position =
+    match vector with
+      | Continuous {radius = r; angle = a} ->
+          printfn "REL: r = %f, a = %f \n" r a
+          printfn "CONT: Destination is %f %f \n\n" <|| position
+      | Discontinuous {radius = r; angle = a} ->
+          printfn "REL: r = %f, a = %f \n" r a
+          printfn "DIS: Destination is %f %f \n\n" <|| position
+    position
+ 
 
 let reset (ctx: Context) (x, y) = ctx.moveTo (x, y)
 
-let drawDecide i position = 
-  match i with
+let drawDecide vector positions = 
+  let position = Seq.head positions
+  printfn "Position is %f %f " <|| position
+  match vector with
     | Continuous { radius = r; angle = a } ->
-        printfn "radius: %f; angle: %f" r a
         let final = position |> endPoint {radius = r; angle = a}
         final
-        |> (fun x -> printfn "CONT: \n"; x)
-        |> printMove
         |> ctx.lineTo
-        final
+
+        Seq.append [final] positions 
     | Discontinuous { radius = r; angle = a } ->
-        printfn "Discont: radius: %f; angle: %f" r a
         let final = position |> endPoint {radius = r; angle = a}
-        ctx.moveTo << printMove <| final
         final
+        |> ctx.moveTo
+
+        Seq.append [final] positions 
+
+
+let rec fillRect positions =
+  match positions |> Seq.toList with
+  |  [] -> ()
+  |  _ -> 
+      let points = Seq.take 3 positions
+      ctx.beginPath()
+      for point in points do
+        ctx.lineTo(point)
+      ctx.fillStyle <- !^"blue"
+      ctx.fill()
+      Seq.skip 2 positions |> fillRect
+
+let drawSquare (ctx: Context) length colors =
+  ctx.beginPath()
+  let lengths = [
+    (length, length)
+    (length, -length)
+    (-length, length)
+    (-length, -length)
+  ]
+  let zipped = Seq.zip colors lengths
+  for color, (l1,l2) in zipped do
+    ctx.fillStyle <- color
+    ctx.fillRect(200.,200.,l1,l2)
+    
+
 
 ctx.lineWidth <- 2.0
 
-let origin = (200., 200.)
-
+let origin = seq{ (200., 200.) }
 let reducer position i =
   drawDecide i position
-
+let rotations = rotationalCut 4 100.
 rotations
 |> Seq.fold reducer origin
+|> (fun x -> ctx.stroke(); x)
+//|> Seq.length |> printfn "%d"
+
+let profileColors = seq {
+  !^"#DB0401"
+  !^"#1B628E"
+  !^"#56A1E4"
+  !^"#56A1E4"
+}
+drawSquare ctx 50. profileColors
+
 ctx.strokeStyle <- !^"red"
 ctx.stroke()
 // write Fable
