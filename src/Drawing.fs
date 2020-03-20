@@ -3,13 +3,30 @@ module Drawing
 open Polar
 open System
 
-type Continuity =
-    | Continuous of Polar
-    | Discontinuous of Polar
+type Continuity<'a> =
+    | Continuous of 'a
+    | Discontinuous of 'a
 
 let isContinuous = function
   | Continuous _ -> true
   | _ -> false
+
+let map f = function
+  | Continuous x -> Continuous (f x)
+  | Discontinuous x -> Discontinuous (f x)
+let binMap f g = function
+  | Continuous x -> Continuous (f x)
+  | Discontinuous x -> Discontinuous (g x)
+let unwrap = function
+  | Continuous x -> x
+  | Discontinuous x -> x
+let transform f = Seq.map (map f)
+
+type Instruction = Continuity<Polar>
+type Instructions = seq<Instruction>
+
+let updateInstructions positions (v : Instruction) : seq<Point> =
+    map (updatePositions positions) v |> unwrap
 
 let buildRectangles centers dimensions =   
   //Rectangles are built clockwise from quad 4

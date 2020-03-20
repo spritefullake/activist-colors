@@ -53,33 +53,24 @@ let printMove vector position =
 
 let reset (ctx: Context) (x, y) = ctx.moveTo (x, y)
 
-
-let computePositions positions v =
-  let final = positions |> Seq.head >> endPoint v
-  Seq.append [final] positions 
-
-let compMatch positions  (Continuous v | Discontinuous v) =
-  let final = (Seq.head positions) |> endPoint v
-  Seq.append [final] positions 
-
 let drawReduce (ctx : Context) positions vector = 
   let position = Seq.head positions
   //printfn "Position is %f %f " <|| position
   match vector with
     | Continuous v ->
-        let final = position |> endPoint v
+        let final = endPoint position v
         final
         |> ctx.lineTo
 
         Seq.append [final] positions 
     | Discontinuous v ->
-        let final = position |> endPoint v
+        let final = endPoint position v
         final
         |> ctx.moveTo
 
         Seq.append [final] positions 
 
-let fillTriangle (ctx: Context) color points  =
+let fillShape (ctx: Context) color points  =
   ctx.beginPath()
   ctx.fillStyle <- color
   for point in points do
@@ -99,35 +90,16 @@ let drawSquares (ctx: Context) center length =
 
 ctx.lineWidth <- 2.0
 
-let origin = (200., 200.) 
+let mapTrack origin = Seq.fold updateInstructions (Seq.singleton origin)
+let origin = (200., 200.)
+let angles = [0.0 .. Math.PI / 2. .. Math.PI * 2.]
+let zipped = Seq.zip angles activismHexes
 
-let rotations = rotationalCut 4 100.
-
-
-//drawSquares ctx [for i in 0..4 do origin] 100. activismHexes
-
-ctx.fillStyle <- !^"green"
-let rects = 
-  rectangularCut 100. 100. 
-  |> Seq.fold (drawReduce ctx) (Seq.singleton origin)
-  |> printfn "RECTS: %A"
-
-
-let origins = [
-  (200.,200.)
-  
-  (100.,200.)
-  (200.,100.)
-  (100.,100.)
-]
-let zipped = Seq.zip origins activismHexes
-for o, color in zipped do 
-  rectangularCut 100. 100. 
-  |> Seq.fold compMatch (Seq.singleton o)
-  |> fillTriangle ctx !^color
-
-
-ctx.stroke()
+for angle, color in zipped do
+  rectangularCut 300. 300.
+  |> transform (rotate angle)
+  |> mapTrack origin
+  |> fillShape ctx !^color
 
 // write Fable
 ctx.textAlign <- "center"
