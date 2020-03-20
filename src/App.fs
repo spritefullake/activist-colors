@@ -39,18 +39,6 @@ myCanvas.height <- gridWidth
 // print the grid size to our debugger console
 printfn "%i" steps
 
-
-let printMove vector position =
-    match vector with
-      | Continuous {radius = r; angle = a} ->
-          printfn "REL: r = %f, a = %f \n" r a
-          printfn "CONT: Destination is %f %f \n\n" <|| position
-      | Discontinuous {radius = r; angle = a} ->
-          printfn "REL: r = %f, a = %f \n" r a
-          printfn "DIS: Destination is %f %f \n\n" <|| position
-    position
- 
-
 let reset (ctx: Context) (x, y) = ctx.moveTo (x, y)
 
 let drawReduce (ctx : Context) positions vector = 
@@ -90,7 +78,6 @@ let drawSquares (ctx: Context) center length =
 
 ctx.lineWidth <- 2.0
 
-let mapTrack origin = Seq.fold updateInstructions (Seq.singleton origin)
 let origin = (200., 200.)
 let angles = [0.0 .. Math.PI / 2. .. Math.PI * 2.]
 let zipped = Seq.zip angles activismHexes

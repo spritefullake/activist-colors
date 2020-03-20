@@ -21,12 +21,17 @@ let unwrap = function
   | Continuous x -> x
   | Discontinuous x -> x
 let transform f = Seq.map (map f)
+let update (f : 'a -> 'b) (item : Continuity<'a>) : 'b =
+  (map f >> unwrap) item
+
 
 type Instruction = Continuity<Polar>
 type Instructions = seq<Instruction>
 
-let updateInstructions positions (v : Instruction) : seq<Point> =
-    map (updatePositions positions) v |> unwrap
+let updateInstructions positions =
+    update (updatePositions positions)
+
+let mapTrack origin = Seq.fold updateInstructions (Seq.singleton origin)
 
 let buildRectangles centers dimensions =   
   //Rectangles are built clockwise from quad 4
