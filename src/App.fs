@@ -4,6 +4,10 @@ open Fable.Core.JsInterop
 open Fable.Import
 open System
 
+open Colors
+open Polar
+open Drawing
+
 let window = Browser.Dom.window
 
 // Get our canvas context
@@ -13,28 +17,6 @@ let mutable myCanvas: Browser.Types.HTMLCanvasElement = unbox window.document.ge
 // myCanvas is defined in public/index.html
 
 type Context = Browser.Types.CanvasRenderingContext2D
-
-type radians = float
-
-type Polar =
-    { radius: float
-      angle: radians }
-
-type Continuity =
-    | Continuous of Polar
-    | Discontinuous of Polar
-
-let rectangular polar =
-    match polar with
-    | { radius = r; angle = θ } ->
-        let x = r * cos (θ)
-        let y = r * sin (θ)
-        (x, y)
-
-let endPoint polar startPoint =
-    let (x, y) = startPoint
-    let (dx, dy) = rectangular polar
-    (x + dx, y + dy)
 
 // Get the context
 let ctx = myCanvas.getContext_2d()
@@ -48,42 +30,6 @@ let squareSize = 20
 // gridWidth needs a float wo we cast tour int operation to a float using the float keyword
 let gridWidth = float (steps * squareSize)
 
-let rotationalCut (sections: int) length =
-    let turnAngle: radians = 2. * Math.PI
-    let sections = float sections
-    let anglePerSection = turnAngle / sections
-
-    let empty = fun i -> { radius = -length; angle = i * anglePerSection }
-
-    let cut = fun i -> { radius = length; angle = i * anglePerSection }
-
-    seq {
-        for i in 0.0 .. sections do
-            yield! seq {
-                       Continuous (cut i)
-                       Discontinuous (empty i)
-                   }
-    }
-
-let isContinuous x = 
-  match x with 
-  | Continuous _ -> true
-  | _ -> false
-
-let polygonalCut (sides : int) = rotationalCut sides >> Seq.filter isContinuous
-
-let verticalCut (sections: int) spacing length =
-    let cut = { radius = length; angle = Math.PI / 2. }
-    let move = { radius = spacing; angle = 0.0 }
-    let empty = { radius = -length; angle = Math.PI / 2.}
-    seq {
-        for i in 0.0 .. (float sections) do
-            yield! seq {
-                       Continuous cut 
-                       Discontinuous empty
-                       Discontinuous move
-                   }
-    }
 
 // resize our canvas to the size of our grid
 // the arrow <- indicates we're mutating a value. It's a special operator in F#.
@@ -107,85 +53,82 @@ let printMove vector position =
 
 let reset (ctx: Context) (x, y) = ctx.moveTo (x, y)
 
-let drawDecide vector positions = 
+
+let computePositions positions v =
+  let final = positions |> Seq.head >> endPoint v
+  Seq.append [final] positions 
+
+let compMatch positions  (Continuous v | Discontinuous v) =
+  let final = (Seq.head positions) |> endPoint v
+  Seq.append [final] positions 
+
+let drawReduce (ctx : Context) positions vector = 
   let position = Seq.head positions
-  printfn "Position is %f %f " <|| position
+  //printfn "Position is %f %f " <|| position
   match vector with
-    | Continuous { radius = r; angle = a } ->
-        let final = position |> endPoint {radius = r; angle = a}
+    | Continuous v ->
+        let final = position |> endPoint v
         final
         |> ctx.lineTo
 
         Seq.append [final] positions 
-    | Discontinuous { radius = r; angle = a } ->
-        let final = position |> endPoint {radius = r; angle = a}
+    | Discontinuous v ->
+        let final = position |> endPoint v
         final
         |> ctx.moveTo
 
         Seq.append [final] positions 
 
-let fillIn (ctx: Context) points color =
+let fillTriangle (ctx: Context) color points  =
   ctx.beginPath()
   ctx.fillStyle <- color
   for point in points do
     ctx.lineTo(point)
   ctx.fill()
 
-let rec fillRect positions =
-  let minPoints = 3
-  let gapPoint = 2
-  if Seq.length positions < minPoints then
-    ()
-  else
-    let points = Seq.take minPoints positions
-    fillIn ctx points !^"blue"
-    Seq.skip gapPoint positions |> fillRect
-
-let drawSquare (ctx: Context) (x, y) length colors =
+let drawRectangles (ctx: Context) center dimensions (colors : seq<String>) =
   ctx.beginPath()
-  let lengths = [
-    (length, length)
-    (length, -length)
-    (-length, length)
-    (-length, -length)
-  ]
-  let zipped = Seq.zip colors lengths
-  for color, (l1,l2) in zipped do
-    ctx.fillStyle <- color
-    ctx.fillRect(x, y, l1,l2)
-    
+  let built = buildRectangles center dimensions
+  let zipped = Seq.zip colors built
+  for color, ((x, y), (width, height)) in zipped do
+    ctx.fillStyle <- !^color
+    ctx.fillRect(x, y, width, height)
+
+let drawSquares (ctx: Context) center length = 
+  drawRectangles ctx center (length, length)
 
 ctx.lineWidth <- 2.0
 
-let origin = seq{ (200., 200.) }
-let reducer position i =
-  drawDecide i position
-let rotations = rotationalCut 6 100.
-rotations
-|> Seq.fold reducer origin
-|> Seq.skip 1
-//|> (fun x -> ctx.stroke(); printfn "AFTER ITER: %A" x; x)
-|> fillRect
-//|> Seq.length |> printfn "%d"
+let origin = (200., 200.) 
 
-//let profileColors = seq {
-  //!^"#DB0401"
-  //!^"#1B628E"
- // !^"#56A1E4"
-  //!^"#56A1E4"
-//}
+let rotations = rotationalCut 4 100.
 
-let originPoint = Seq.head origin
-//drawSquare ctx originPoint 50. profileColors
-let myPoints = seq {
-  (300.,200.)
-  originPoint
-  (200.,300.)
-}
-//fillIn ctx myPoints !^"#DB0401"
 
-ctx.strokeStyle <- !^"red"
+//drawSquares ctx [for i in 0..4 do origin] 100. activismHexes
+
+ctx.fillStyle <- !^"green"
+let rects = 
+  rectangularCut 100. 100. 
+  |> Seq.fold (drawReduce ctx) (Seq.singleton origin)
+  |> printfn "RECTS: %A"
+
+
+let origins = [
+  (200.,200.)
+  
+  (100.,200.)
+  (200.,100.)
+  (100.,100.)
+]
+let zipped = Seq.zip origins activismHexes
+for o, color in zipped do 
+  rectangularCut 100. 100. 
+  |> Seq.fold compMatch (Seq.singleton o)
+  |> fillTriangle ctx !^color
+
+
 ctx.stroke()
+
 // write Fable
 ctx.textAlign <- "center"
 ctx.fillText ("What is this", gridWidth * 0.5, gridWidth * 0.5)

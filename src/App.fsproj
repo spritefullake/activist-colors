@@ -3,6 +3,9 @@
     <TargetFramework>netstandard2.0</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="Polar.fs"/>
+    <Compile Include="Drawing.fs"/>  
+    <Compile Include="Colors.fs"/>
     <Compile Include="App.fs" />
   </ItemGroup>
   <ItemGroup>
