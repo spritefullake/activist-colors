@@ -57,23 +57,34 @@ ctx.lineWidth <- 2.0
 
 
 type PickerProps =
-| Colors of list<string>
+| Colors of string[] //it's crucial to pass these as an Array NOT List
+| OnSwatchHover of (string -> Browser.Types.Event -> unit)
+| OnChange of (Browser.Types.Event -> unit)
 
 type IColor =
     //[<Emit("$0({color: #f7f7f7})")>]
-    abstract GithubPicker : unit -> ReactElement
+    abstract TwitterPicker : unit -> ReactElement
 
 (*
 [<ImportMember("react-color")>]
-type GithubPicker =
+type TwitterPicker =
     class
-        new(arg) = GithubPicker(arg)
+        new(arg) = TwitterPicker(arg)
     end
 *)
 
-let GithubPicker = ofImport "GithubPicker" "react-color"  [] []
+//let TwitterPicker = ofImport "TwitterPicker" "react-color"  [] []
 
-printfn "%A" GithubPicker
+//let TwitterPicker = importMember "react-color"
+
+let examples = [| "#000000"; "#F0F8FF"; "#00FF00" |]
+
+let inline TwitterPicker props : ReactElement =
+    ofImport "TwitterPicker" "react-color" (keyValueList CaseRules.LowerFirst props) []
+
+
+
+Browser.Dom.console.log (Colors examples)
 
 
 type State =
@@ -102,14 +113,18 @@ let render {Colors = colors} (dispatch: Msg -> unit) =
                 attr.style [ style.backgroundColor h ] ] ]
 
     let displayedColors = Seq.collect colorDisplay colors
+
+    let twitterColors = (List.map (fun c -> c.hex) colors) |> List.toArray |> Colors
+    let swatch = OnSwatchHover (fun color event -> Browser.Dom.console.log ("Color ", color, " hovered via ", event))
+    let change = OnChange (fun event -> Browser.Dom.console.log ("Change via : ", event))
     Html.div
         [ Html.h1 "Colors List"
           Html.div
               [ attr.className "colors-list"
                 attr.children displayedColors ]
-          GithubPicker
+          TwitterPicker [ twitterColors; swatch; change ]
 
-          Html.h2 "Add a Color Right!"
+          Html.h2 "Add a Color!"
           Html.button [ attr.text "Add Color" ]
           Html.input [ 
               attr.type' "color"
