@@ -1,8 +1,10 @@
 module App
 
+open Fable.Core
 open Fable.Core.JsInterop
 open Fable.Import
 open System
+open Fable.React
 
 open Elmish
 open Elmish.React
@@ -18,6 +20,7 @@ open Colors
 open Polar
 open Drawing
 open Shape
+
 
 let window = Browser.Dom.window
 
@@ -53,6 +56,26 @@ printfn "Gride Size Steps: %i" steps
 ctx.lineWidth <- 2.0
 
 
+type PickerProps =
+| Colors of list<string>
+
+type IColor =
+    //[<Emit("$0({color: #f7f7f7})")>]
+    abstract GithubPicker : unit -> ReactElement
+
+(*
+[<ImportMember("react-color")>]
+type GithubPicker =
+    class
+        new(arg) = GithubPicker(arg)
+    end
+*)
+
+let GithubPicker = ofImport "GithubPicker" "react-color"  [] []
+
+printfn "%A" GithubPicker
+
+
 type State =
     { Colors: list<Colors.Color> }
 
@@ -84,12 +107,15 @@ let render {Colors = colors} (dispatch: Msg -> unit) =
           Html.div
               [ attr.className "colors-list"
                 attr.children displayedColors ]
+          GithubPicker
 
-          Html.h1 "Add a Color!"
+          Html.h2 "Add a Color Right!"
           Html.button [ attr.text "Add Color" ]
-          Html.input [ attr.type' "color" ] ]
+          Html.input [ 
+              attr.type' "color"
+              attr.className "color-picker" ] ]
 
-
+open Elmish.HMR
 Program.mkSimple init update render
 |> Program.withReactBatched "elmish-app"
 |> Program.run

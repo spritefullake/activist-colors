@@ -3,9 +3,12 @@
 // https://github.com/fable-compiler/webpack-config-template
 
 var path = require("path");
+var DotenvPlugin = require("dotenv-webpack");
+var webpack = require("webpack");
 
+const mode = "development";
 module.exports = {
-    mode: "development",
+    mode: mode,
     entry: "./src/App.fsproj",
     output: {
         path: path.join(__dirname, "./public"),
@@ -14,7 +17,29 @@ module.exports = {
     devServer: {
         contentBase: "./public",
         port: 3000,
+        hot: true,
+        inline: true
     },
+    plugins: mode === "development" ?
+        // development mode plugins
+        [
+            new DotenvPlugin({
+                path: path.join(__dirname, ".env"),
+                silent: true,
+                systemvars: true
+            }),
+
+            new webpack.HotModuleReplacementPlugin()
+        ]
+        :
+        // production mode plugins
+        [
+            new DotenvPlugin({
+                path: path.join(__dirname, ".env"),
+                silent: true,
+                systemvars: true
+            })
+        ],
     module: {
         rules: [{
             test: /\.fs(x|proj)?$/,
