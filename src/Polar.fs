@@ -4,7 +4,6 @@ type radians = float
 
 //Tuple for rectangular coordinates
 type Point = float * float
-type Points = seq<Point>
 type Polar = //Represents Polar Coordinates as a vector
     { radius: float
       angle: radians }
@@ -26,10 +25,11 @@ let endPoint start polar : Point =
     let (dx, dy) = rectangular polar
     (x + dx, y + dy)
 
-let updatePositions positions polar  : Points =
-  let current = Seq.head positions
-  let final = endPoint current polar
-  Seq.append [final] positions 
+let predict futureFn acc x =
+  let final = futureFn (Seq.head acc) x
+  Seq.append [final] acc 
+
+let track reducer start = Seq.fold reducer start
 
 let rotation2D (x, y) theta : Point =
   let x1 = x * cos(theta) - y * sin(theta)

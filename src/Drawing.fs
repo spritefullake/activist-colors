@@ -28,10 +28,11 @@ let update (f : 'a -> 'b) (item : Continuity<'a>) : 'b =
 type Instruction = Continuity<Polar>
 type Instructions = seq<Instruction>
 
-let updateInstructions positions =
-    update (updatePositions positions)
+let applyMovement (start : Continuity<Point>)= 
+  map << unwrap <| (map endPoint start)
 
-let mapTrack origin = Seq.fold updateInstructions (Seq.singleton origin)
+let movementTrack (origin : Continuity<Point>) = 
+  track (predict applyMovement) (Seq.singleton origin)
 
 let buildRectangles centers dimensions =   
   //Rectangles are built clockwise from quad 4
