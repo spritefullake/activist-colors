@@ -3,15 +3,16 @@ module Colors
 type Color = {
     name: string
     hex: string
+    id: int
 }
 
-let toColor (name, hex) =
-    { name = name; hex = hex }
+let toColor id (name, hex) =
+    { name = name; hex = hex; id = id}
 
 let getHexes colors =
-    Seq.map (fun color -> color.hex) colors
+    List.map (fun color -> color.hex) colors
 
-let activismColors : list<Color> = List.map toColor [
+let activismColors : list<Color> = List.mapi toColor [
   ("Kashmir Red", "#DB0401")
   ("Sudan Blue", "#1B628E") 
   ("Uighur Blue", "#56A1E4") 

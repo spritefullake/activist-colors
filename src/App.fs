@@ -57,13 +57,13 @@ ctx.lineWidth <- 2.0
 
 
 type PickerProps =
-| Colors of string[] //it's crucial to pass these as an Array NOT List
-| OnSwatchHover of (string -> Browser.Types.Event -> unit)
-| OnChange of (Browser.Types.Event -> unit)
+    | Colors of string [] //it's crucial to pass these as an Array NOT List
+    | OnSwatchHover of (string -> Browser.Types.Event -> unit)
+    | OnChange of (Browser.Types.Event -> unit)
 
 type IColor =
     //[<Emit("$0({color: #f7f7f7})")>]
-    abstract BlockPicker : unit -> ReactElement
+    abstract BlockPicker: unit -> ReactElement
 
 (*
 [<ImportMember("react-color")>]
@@ -77,95 +77,139 @@ type BlockPicker =
 
 //let BlockPicker = importMember "react-color"
 
-let inline BlockPicker props : ReactElement =
+let inline BlockPicker props: ReactElement =
     ofImport "BlockPicker" "react-color" (keyValueList CaseRules.LowerFirst props) []
 
 type State =
-    { Colors: list<Colors.Color>; ActiveColor: Colors.Color }
+    { Colors: list<Colors.Color>
+      ActiveColor: Colors.Color }
 
 type Msg =
     | Add of Colors.Color
     | Remove of Colors.Color
     | SetActiveHex of string
 
-let init() = { Colors = activismColors |> Seq.toList; ActiveColor = {name = "Color"; hex = "#aaaeee"} }
+let nextId (source : Colors.Color list) : int = 
+    (List.maxBy (fun x -> x.id) source).id + 1
 
-let dropFirst predicate items = 
-    let rec loop validated items =                   
+let distinctCodes colors = 
+    List.length << List.distinct << getHexes <| colors
+
+
+let init() =
+    { Colors = activismColors |> Seq.toList
+      ActiveColor =
+          { name = sprintf "Color %d" (distinctCodes activismColors)
+            hex = "#aaaeee"
+            id = nextId activismColors } }, Cmd.none
+
+let dropFirst predicate items =
+    let rec loop validated items =
         match items with
         | [] -> []
-        | x::xs -> 
-            if predicate x then
-                loop (validated@[x]) xs
-            else
-                validated@xs
-    loop [] items    
+        | x :: xs ->
+            if predicate x then loop (validated @ [ x ]) xs else validated @ xs
+    loop [] items
 
-let update (msg: Msg) (state: State): State =
+let newColor hex colors =
+    let picker color =
+        if color.hex = hex then
+            Some color
+        else
+            None
+    match List.tryPick picker colors with
+    | Some color ->
+        {color with id = nextId colors}
+    | None ->
+        {
+            name = sprintf "Color %d" (distinctCodes colors)
+            hex = hex
+            id = nextId colors
+        }
+
+let runMixer (hexes : string seq) =
+    let origin = (200., 200.)
+    let angles = [ 0.0 .. Math.PI / 2. .. Math.PI * 2. ]
+    let zipped = Seq.zip angles hexes   
+
+    for angle, color in zipped do
+        rectangularCut 100. 100.
+        |> transform (rotate angle)
+        //|> Seq.iter (fun x -> ctx.stroke())
+        |> movementTrack (Continuous origin)
+        |> Seq.map unwrap
+        |> Shape.fill ctx !^color
+
+let update (msg: Msg) (state: State): State * Cmd<Msg> =
+    printfn "THE COLORS ARE %A" state.Colors
     match msg with
     | Add color -> 
-        { state with Colors = state.Colors@[color] }
+        { state with Colors = state.Colors @ [ color ] }, 
+        Cmd.ofMsg (SetActiveHex color.hex) //Refresh the ID of the active color
+        //this ^ is an abuse of the Elmish state model; should refactor
 
     | Remove color -> 
-        { state with Colors = dropFirst (fun c -> color <> c) state.Colors }
-    
-    | SetActiveHex hex ->
-        { state with ActiveColor = {name = (sprintf "Color %d" (List.length state.Colors)); hex = hex}}
+        { state with Colors = List.where (fun c -> c.id <> color.id) state.Colors },
+        Cmd.none
 
-let render {Colors = colors; ActiveColor = active} (dispatch: Msg -> unit) =
+    | SetActiveHex hex ->          
+        let active = newColor hex state.Colors
+        { state with
+              ActiveColor = active },
+        Cmd.none              
 
-    let colorDisplay color =
-        [ Html.p color.name
-          Html.div
-              [ attr.className "color-box"
-                attr.style [ style.backgroundColor color.hex ] 
-                attr.onClick (fun _ -> (Remove >> dispatch) color)
-                ] ]
+let colorDisplays (state : State) (dispatch : Msg -> unit) : ReactElement list =
+        let colorDisplay color =
+            let {id = id; name = name; hex = hex} = color
+            [ Html.button
+                [ attr.className "color-remove"
+                  attr.onClick (fun _ -> (Remove >> dispatch) color) ]
+              Html.p name
+              Html.div
+                  [ attr.className "color-show"
+                    attr.style [ style.backgroundColor hex ] ] ]
+        List.collect colorDisplay state.Colors
 
-    let displayedColors = Seq.collect colorDisplay colors
+let render (state) (dispatch: Msg -> unit) =
+    let { Colors = colors; ActiveColor = active } = state
 
-    let blockColors = (List.map (fun c -> c.hex) colors) |> List.toArray |> Colors
-    let swatch = OnSwatchHover (fun color event -> Browser.Dom.console.log ("Color ", color, " hovered via ", event))
-    let change = OnChange (fun event -> Browser.Dom.console.log ("Change via : ", event))
+    let blockColors =
+        (List.map (fun c -> c.hex) colors)
+        |> List.toArray
+        |> Colors
+
+    let swatch = OnSwatchHover(fun color event -> Browser.Dom.console.log ("Color ", color, " hovered via ", event))
+    let change = OnChange(fun event -> Browser.Dom.console.log ("Change via : ", event))
     Html.div
-        [ Html.h1 "Colors List"
-          Html.div
-              [ attr.className "colors-list"
-                attr.children displayedColors ]
-          BlockPicker [ blockColors; swatch; change ]
+        [ attr.className "color-interactive"
+          attr.children
+              [ Html.h1 "Colors List"
+                Html.div
+                    [ attr.className "colors-list"
+                      attr.children (colorDisplays state dispatch) ]
+                BlockPicker [ blockColors; swatch; change ]
 
-          Html.h2 "Add a Color!"
-          Html.button [ 
-            attr.text "Add Color" 
-            attr.onClick (fun _ -> (Add >> dispatch) active)
-          ]
-          Html.input [ 
-              attr.type' "color"
-              attr.className "color-picker"
-              attr.valueOrDefault active.hex
-              attr.onChange (SetActiveHex >> dispatch)
-            ] ]
+                Html.h2 "Add a Color!"
+                Html.button
+                    [ attr.text "Add Color"
+                      attr.onClick (fun _ -> (Add >> dispatch) active) ]
+                Html.input
+                    [ attr.type' "color"
+                      attr.className "color-picker"
+                      attr.onTextChange (SetActiveHex >> dispatch)
+                      attr.valueOrDefault active.hex ] ] ]
+    
 
 open Elmish.HMR
-Program.mkSimple init update render
+
+Program.mkProgram init update render
 |> Program.withReactBatched "elmish-app"
 |> Program.run
 
 
 
-let origin = (200., 200.)
-let angles = [ 0.0 .. Math.PI / 2. .. Math.PI * 2. ]
-let zipped = Seq.zip angles activismHexes
 
 
-
-for angle, color in zipped do
-    rectangularCut 100. 100.
-    |> transform (rotate angle)
-    //|> Seq.iter (fun x -> ctx.stroke())
-    |> movementTrack (Continuous origin)
-    |> Seq.map unwrap
-    |> Shape.fill ctx !^color
 
 // write Fable
 ctx.textAlign <- "center"
