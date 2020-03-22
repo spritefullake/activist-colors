@@ -88,12 +88,11 @@ type Msg =
     | Add of Colors.Color
     | Remove of Colors.Color
     | SetActiveHex of string
+    | DrawProfile
 
-let nextId (source : Colors.Color list) : int = 
-    (List.maxBy (fun x -> x.id) source).id + 1
+let nextId (source: Colors.Color list): int = (List.maxBy (fun x -> x.id) source).id + 1
 
-let distinctCodes colors = 
-    List.length << List.distinct << getHexes <| colors
+let distinctCodes colors = List.length << List.distinct << getHexes <| colors
 
 
 let init() =
@@ -113,24 +112,18 @@ let dropFirst predicate items =
 
 let newColor hex colors =
     let picker color =
-        if color.hex = hex then
-            Some color
-        else
-            None
+        if color.hex = hex then Some color else None
     match List.tryPick picker colors with
-    | Some color ->
-        {color with id = nextId colors}
+    | Some color -> { color with id = nextId colors }
     | None ->
-        {
-            name = sprintf "Color %d" (distinctCodes colors)
-            hex = hex
-            id = nextId colors
-        }
+        { name = sprintf "Color %d" (distinctCodes colors)
+          hex = hex
+          id = nextId colors }
 
-let runMixer (hexes : string seq) =
+let runMixer (hexes: string seq) =
     let origin = (200., 200.)
     let angles = [ 0.0 .. Math.PI / 2. .. Math.PI * 2. ]
-    let zipped = Seq.zip angles hexes   
+    let zipped = Seq.zip angles hexes
 
     for angle, color in zipped do
         rectangularCut 100. 100.
@@ -143,32 +136,30 @@ let runMixer (hexes : string seq) =
 let update (msg: Msg) (state: State): State * Cmd<Msg> =
     printfn "THE COLORS ARE %A" state.Colors
     match msg with
-    | Add color -> 
-        { state with Colors = state.Colors @ [ color ] }, 
-        Cmd.ofMsg (SetActiveHex color.hex) //Refresh the ID of the active color
-        //this ^ is an abuse of the Elmish state model; should refactor
+    | Add color -> { state with Colors = state.Colors @ [ color ] }, Cmd.ofMsg (SetActiveHex color.hex) //Refresh the ID of the active color
+    //this ^ is an abuse of the Elmish state model; should refactor
 
-    | Remove color -> 
-        { state with Colors = List.where (fun c -> c.id <> color.id) state.Colors },
-        Cmd.none
+    | Remove color -> { state with Colors = List.where (fun c -> c.id <> color.id) state.Colors }, Cmd.none
 
-    | SetActiveHex hex ->          
+    | SetActiveHex hex ->
         let active = newColor hex state.Colors
-        { state with
-              ActiveColor = active },
-        Cmd.none              
+        { state with ActiveColor = active }, Cmd.none
 
-let colorDisplays (state : State) (dispatch : Msg -> unit) : ReactElement list =
-        let colorDisplay color =
-            let {id = id; name = name; hex = hex} = color
-            [ Html.button
-                [ attr.className "color-remove"
-                  attr.onClick (fun _ -> (Remove >> dispatch) color) ]
-              Html.p name
-              Html.div
-                  [ attr.className "color-show"
-                    attr.style [ style.backgroundColor hex ] ] ]
-        List.collect colorDisplay state.Colors
+    | DrawProfile ->
+        runMixer (getHexes state.Colors)
+        state, Cmd.none
+
+let colorDisplays (state: State) (dispatch: Msg -> unit): ReactElement list =
+    let colorDisplay color =
+        let { id = id; name = name; hex = hex } = color
+        [ Html.button
+            [ attr.className "color-remove"
+              attr.onClick (fun _ -> (Remove >> dispatch) color) ]
+          Html.p name
+          Html.div
+              [ attr.className "color-show"
+                attr.style [ style.backgroundColor hex ] ] ]
+    List.collect colorDisplay state.Colors
 
 let render (state) (dispatch: Msg -> unit) =
     let { Colors = colors; ActiveColor = active } = state
@@ -197,8 +188,12 @@ let render (state) (dispatch: Msg -> unit) =
                     [ attr.type' "color"
                       attr.className "color-picker"
                       attr.onTextChange (SetActiveHex >> dispatch)
-                      attr.valueOrDefault active.hex ] ] ]
-    
+                      attr.valueOrDefault active.hex ]
+                Html.button 
+                    [ attr.onClick (fun me -> (DrawProfile |> dispatch))
+                      attr.text "Play canvas"]]]
+
+
 
 open Elmish.HMR
 
