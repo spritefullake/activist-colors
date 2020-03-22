@@ -51,7 +51,7 @@ myCanvas.width <- gridWidth
 myCanvas.height <- gridWidth
 
 // print the grid size to our debugger console
-printfn "Gride Size Steps: %i" steps
+printfn "Width: %f, height %f" w h
 
 ctx.lineWidth <- 2.0
 
@@ -87,111 +87,106 @@ type State =
 type Msg =
     | Add of Colors.Color
     | Remove of Colors.Color
-    | SetActiveHex of string
+    | SetActive of string
     | DrawProfile
 
-let nextId (source: Colors.Color list): int = (List.maxBy (fun x -> x.id) source).id + 1
-
-let distinctCodes colors = List.length << List.distinct << getHexes <| colors
-
-
 let init() =
-    { Colors = activismColors |> Seq.toList
+    { Colors = activismColors
       ActiveColor =
           { name = sprintf "Color %d" (distinctCodes activismColors)
-            hex = "#aaaeee"
-            id = nextId activismColors } }, Cmd.none
+            code = "#aaaeee"
+            id = nextId activismColors } }, Cmd.ofMsg DrawProfile
 
-let dropFirst predicate items =
-    let rec loop validated items =
-        match items with
-        | [] -> []
-        | x :: xs ->
-            if predicate x then loop (validated @ [ x ]) xs else validated @ xs
-    loop [] items
-
-let newColor hex colors =
+let newColor code colors =
     let picker color =
-        if color.hex = hex then Some color else None
+        if color.code = code then Some color else None
     match List.tryPick picker colors with
     | Some color -> { color with id = nextId colors }
     | None ->
         { name = sprintf "Color %d" (distinctCodes colors)
-          hex = hex
+          code = code
           id = nextId colors }
 
-let runMixer (hexes: string seq) =
-    let origin = (200., 200.)
-    let angles = [ 0.0 .. Math.PI / 2. .. Math.PI * 2. ]
-    let zipped = Seq.zip angles hexes
+let refreshActiveColor state =
+    let { ActiveColor = active; Colors = colors } = state
+    { state with ActiveColor = { active with id = nextId colors } }
 
-    for angle, color in zipped do
-        rectangularCut 100. 100.
-        |> transform (rotate angle)
-        //|> Seq.iter (fun x -> ctx.stroke())
-        |> movementTrack (Continuous origin)
-        |> Seq.map unwrap
-        |> Shape.fill ctx !^color
+
+
+
+let paint colors =
+    let pointsTransform = profileSquares (200., 200.)
+    let colorCodes = getCodes colors
+    fillCanvas ctx pointsTransform colorCodes
 
 let update (msg: Msg) (state: State): State * Cmd<Msg> =
-    printfn "THE COLORS ARE %A" state.Colors
+    let { Colors = colors } = state
+    printfn "THE COLORS ARE %A" colors
     match msg with
-    | Add color -> { state with Colors = state.Colors @ [ color ] }, Cmd.ofMsg (SetActiveHex color.hex) //Refresh the ID of the active color
-    //this ^ is an abuse of the Elmish state model; should refactor
+    | Add color ->
+        let updated = colors @ [ color ]
+        paint updated
+        { state with Colors = updated } |> refreshActiveColor, Cmd.none
 
-    | Remove color -> { state with Colors = List.where (fun c -> c.id <> color.id) state.Colors }, Cmd.none
+    | Remove color ->
+        let updated = List.where (fun c -> c.id <> color.id) colors
+        paint updated
+        { state with Colors = updated }, Cmd.none
 
-    | SetActiveHex hex ->
-        let active = newColor hex state.Colors
+    | SetActive code ->
+        let active = newColor code colors
         { state with ActiveColor = active }, Cmd.none
 
     | DrawProfile ->
-        runMixer (getHexes state.Colors)
+        paint colors
         state, Cmd.none
 
-let colorDisplays (state: State) (dispatch: Msg -> unit): ReactElement list =
+let colorDisplays { Colors = colors } (dispatch: Msg -> unit): ReactElement =
     let colorDisplay color =
-        let { id = id; name = name; hex = hex } = color
+        let { id = id; name = name; code = code } = color
         [ Html.button
             [ attr.className "color-remove"
               attr.onClick (fun _ -> (Remove >> dispatch) color) ]
-          Html.p name
+          Html.div name
           Html.div
               [ attr.className "color-show"
-                attr.style [ style.backgroundColor hex ] ] ]
-    List.collect colorDisplay state.Colors
+                attr.style [ style.backgroundColor code ] ] ]
+
+    Html.div
+        [ attr.className "colors-list"
+          attr.children (List.collect colorDisplay colors) ]
+
+let mixButtons { ActiveColor = active } (dispatch: Msg -> unit): ReactElement =
+    Html.div
+        [ attr.className "color-interactive"
+          attr.children
+              [ Html.button
+                  [ attr.text "Add"
+                    attr.onClick (fun _ -> (Add >> dispatch) active) ]
+                Html.label
+                    [ attr.for' "chooser"
+                      attr.text "Choose" ]
+                Html.input
+                    [ attr.type' "color"
+                      attr.id "chooser"
+                      attr.className "color-picker"
+                      attr.onTextChange (SetActive >> dispatch)
+                      attr.valueOrDefault active.code ] ] ]
 
 let render (state) (dispatch: Msg -> unit) =
     let { Colors = colors; ActiveColor = active } = state
 
     let blockColors =
-        (List.map (fun c -> c.hex) colors)
+        (List.map (fun c -> c.code) colors)
         |> List.toArray
         |> Colors
 
     let swatch = OnSwatchHover(fun color event -> Browser.Dom.console.log ("Color ", color, " hovered via ", event))
     let change = OnChange(fun event -> Browser.Dom.console.log ("Change via : ", event))
     Html.div
-        [ attr.className "color-interactive"
-          attr.children
-              [ Html.h1 "Colors List"
-                Html.div
-                    [ attr.className "colors-list"
-                      attr.children (colorDisplays state dispatch) ]
-                BlockPicker [ blockColors; swatch; change ]
-
-                Html.h2 "Add a Color!"
-                Html.button
-                    [ attr.text "Add Color"
-                      attr.onClick (fun _ -> (Add >> dispatch) active) ]
-                Html.input
-                    [ attr.type' "color"
-                      attr.className "color-picker"
-                      attr.onTextChange (SetActiveHex >> dispatch)
-                      attr.valueOrDefault active.hex ]
-                Html.button 
-                    [ attr.onClick (fun me -> (DrawProfile |> dispatch))
-                      attr.text "Play canvas"]]]
+        [ attr.children
+            [ colorDisplays state dispatch
+              mixButtons state dispatch ] ]
 
 
 
@@ -200,15 +195,3 @@ open Elmish.HMR
 Program.mkProgram init update render
 |> Program.withReactBatched "elmish-app"
 |> Program.run
-
-
-
-
-
-
-// write Fable
-ctx.textAlign <- "center"
-ctx.fillText ("What is this", gridWidth * 0.5, gridWidth * 0.5)
-
-printfn "done!"
-printfn "w: %f" w

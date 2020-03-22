@@ -4,6 +4,7 @@
     <TargetFramework>netstandard2.0</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="Movement.fs" />
     <Compile Include="Polar.fs" />
     <Compile Include="Drawing.fs" />
     <Compile Include="Colors.fs" />

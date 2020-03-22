@@ -2,15 +2,15 @@ module Colors
 
 type Color = {
     name: string
-    hex: string
+    code: string
     id: int
 }
 
-let toColor id (name, hex) =
-    { name = name; hex = hex; id = id}
+let toColor id (name, code) =
+    { name = name; code = code; id = id}
 
-let getHexes colors =
-    List.map (fun color -> color.hex) colors
+let getCodes colors =
+    List.map (fun {code = code} -> code) colors
 
 let activismColors : list<Color> = List.mapi toColor [
   ("Kashmir Red", "#DB0401")
@@ -19,4 +19,6 @@ let activismColors : list<Color> = List.mapi toColor [
   ("Uighur Blue", "#56A1E4")
 ]
 
-let activismHexes = getHexes activismColors
+let activismCodes = getCodes activismColors
+let distinctCodes = getCodes >> List.distinct >> List.length
+let nextId source : int = (List.maxBy (fun x -> x.id) source).id + 1

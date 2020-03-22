@@ -1,38 +1,20 @@
 module Drawing
 
 open Polar
+open Movement
 open System
 
-type Continuity<'a> =
-    | Continuous of 'a
-    | Discontinuous of 'a
+type Instruction = Movement<Polar>
+type Drawing<'a> = Movement<'a> seq
 
-let isContinuous = function
-  | Continuous _ -> true
-  | _ -> false
-
-let map f = function
-  | Continuous x -> Continuous (f x)
-  | Discontinuous x -> Discontinuous (f x)
-let binMap f g = function
-  | Continuous x -> Continuous (f x)
-  | Discontinuous x -> Discontinuous (g x)
-let unwrap = function
-  | Continuous x -> x
-  | Discontinuous x -> x
-let transform f = Seq.map (map f)
-let update (f : 'a -> 'b) (item : Continuity<'a>) : 'b =
-  (map f >> unwrap) item
-
-
-type Instruction = Continuity<Polar>
-type Instructions = seq<Instruction>
-
-let applyMovement (start : Continuity<Point>)= 
+let applyMovement (start : Movement<Point>)= 
   map << unwrap <| (map endPoint start)
 
-let movementTrack (origin : Continuity<Point>) = 
-  track (predict applyMovement) (Seq.singleton origin)
+let reify initial concreteFn movements : Drawing<'a> = 
+  movements 
+  |> track (predict concreteFn) (Seq.singleton initial)
+
+let toPointDrawing initial = reify initial applyMovement
 
 let buildRectangles centers dimensions =   
   //Rectangles are built clockwise from quad 4
@@ -85,3 +67,10 @@ let verticalCut (sections: int) spacing length =
                        Discontinuous move
                    }
     }
+
+let profileSquares origin =
+    let angles = [ 0.0 .. Math.PI / 2. .. Math.PI * 2. ]
+    angles |> Seq.map (fun angle ->
+        rectangularCut 100. 100.
+        |> transform (rotate angle)
+        |> toPointDrawing (Continuous origin))
