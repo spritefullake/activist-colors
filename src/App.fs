@@ -63,58 +63,68 @@ type PickerProps =
 
 type IColor =
     //[<Emit("$0({color: #f7f7f7})")>]
-    abstract TwitterPicker : unit -> ReactElement
+    abstract BlockPicker : unit -> ReactElement
 
 (*
 [<ImportMember("react-color")>]
-type TwitterPicker =
+type BlockPicker =
     class
-        new(arg) = TwitterPicker(arg)
+        new(arg) = BlockPicker(arg)
     end
 *)
 
-//let TwitterPicker = ofImport "TwitterPicker" "react-color"  [] []
+//let BlockPicker = ofImport "BlockPicker" "react-color"  [] []
 
-//let TwitterPicker = importMember "react-color"
+//let BlockPicker = importMember "react-color"
 
-let examples = [| "#000000"; "#F0F8FF"; "#00FF00" |]
-
-let inline TwitterPicker props : ReactElement =
-    ofImport "TwitterPicker" "react-color" (keyValueList CaseRules.LowerFirst props) []
-
-
-
-Browser.Dom.console.log (Colors examples)
-
+let inline BlockPicker props : ReactElement =
+    ofImport "BlockPicker" "react-color" (keyValueList CaseRules.LowerFirst props) []
 
 type State =
-    { Colors: list<Colors.Color> }
+    { Colors: list<Colors.Color>; ActiveColor: Colors.Color }
 
 type Msg =
     | Add of Colors.Color
     | Remove of Colors.Color
+    | SetActiveHex of string
 
-let init() = { Colors = activismColors |> Seq.toList }
+let init() = { Colors = activismColors |> Seq.toList; ActiveColor = {name = "Color"; hex = "#aaaeee"} }
+
+let dropFirst predicate items = 
+    let rec loop validated items =                   
+        match items with
+        | [] -> []
+        | x::xs -> 
+            if predicate x then
+                loop (validated@[x]) xs
+            else
+                validated@xs
+    loop [] items    
 
 let update (msg: Msg) (state: State): State =
     match msg with
     | Add color -> 
-        { state with Colors = color::state.Colors }
+        { state with Colors = state.Colors@[color] }
 
     | Remove color -> 
-        { state with Colors = List.where (fun c -> color <> c) state.Colors }
+        { state with Colors = dropFirst (fun c -> color <> c) state.Colors }
+    
+    | SetActiveHex hex ->
+        { state with ActiveColor = {name = (sprintf "Color %d" (List.length state.Colors)); hex = hex}}
 
-let render {Colors = colors} (dispatch: Msg -> unit) =
+let render {Colors = colors; ActiveColor = active} (dispatch: Msg -> unit) =
 
-    let colorDisplay { name = n; hex = h } =
-        [ Html.p n
+    let colorDisplay color =
+        [ Html.p color.name
           Html.div
               [ attr.className "color-box"
-                attr.style [ style.backgroundColor h ] ] ]
+                attr.style [ style.backgroundColor color.hex ] 
+                attr.onClick (fun _ -> (Remove >> dispatch) color)
+                ] ]
 
     let displayedColors = Seq.collect colorDisplay colors
 
-    let twitterColors = (List.map (fun c -> c.hex) colors) |> List.toArray |> Colors
+    let blockColors = (List.map (fun c -> c.hex) colors) |> List.toArray |> Colors
     let swatch = OnSwatchHover (fun color event -> Browser.Dom.console.log ("Color ", color, " hovered via ", event))
     let change = OnChange (fun event -> Browser.Dom.console.log ("Change via : ", event))
     Html.div
@@ -122,13 +132,19 @@ let render {Colors = colors} (dispatch: Msg -> unit) =
           Html.div
               [ attr.className "colors-list"
                 attr.children displayedColors ]
-          TwitterPicker [ twitterColors; swatch; change ]
+          BlockPicker [ blockColors; swatch; change ]
 
           Html.h2 "Add a Color!"
-          Html.button [ attr.text "Add Color" ]
+          Html.button [ 
+            attr.text "Add Color" 
+            attr.onClick (fun _ -> (Add >> dispatch) active)
+          ]
           Html.input [ 
               attr.type' "color"
-              attr.className "color-picker" ] ]
+              attr.className "color-picker"
+              attr.valueOrDefault active.hex
+              attr.onChange (SetActiveHex >> dispatch)
+            ] ]
 
 open Elmish.HMR
 Program.mkSimple init update render
