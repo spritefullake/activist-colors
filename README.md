@@ -1,6 +1,32 @@
-# Fable Browser App
+# Activist Colors
 
-This is a simple Fable app which draws a grid into a canvas element. 
+## Why?
+
+All across the world, marginalized groups of people are subject to the cruelty of oppressors. And while we don't always have the power to stop injustice, **we can always start a movement to uphold justice**. I want to highlight some groups that are particularly marginalized and who often are given no voice in the mainstream media.
+
+---
+
+Let's promote compassion, justice and empathy for all 🌐
+
+🌎🌍🌏
+
+
+#### Works in progress
+
+This project is my first Fable project, so I am still learning how to improve it. Advice is welcome.
+
+1. ##### Feature the following groups
+      * Sudanese
+      * Kashmiris
+      * Uighurs
+      * Rohingya
+      * Palestinians
+      * Yemenis
+      * Syrians
+      * Libyans
+      * (To be continued)
+2. ##### Allow images to be shared across social media
+3. ##### Links to charities and resources
 
 ## Requirements
 
@@ -28,7 +54,7 @@ JS dependencies are declared in `package.json`, while `package-lock.json` is a l
 
 ### F#
 
-The sample only contains two F# files: the project (.fsproj) and a source file (.fs) in the `src` folder.
+The F# files are in the `src` folder.
 
 ### Web assets
 
