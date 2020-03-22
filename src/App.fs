@@ -146,6 +146,7 @@ let colorDisplays { Colors = colors } (dispatch: Msg -> unit): ReactElement =
         let { id = id; name = name; code = code } = color
         [ Html.button
             [ attr.className "color-remove"
+              attr.text "X"
               attr.onClick (fun _ -> (Remove >> dispatch) color) ]
           Html.div name
           Html.div

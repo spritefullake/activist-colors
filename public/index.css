@@ -11,7 +11,7 @@
 }
 .color-activism{
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr));
     align-items: start;
     justify-items: center;
     align-content: start;
@@ -20,8 +20,37 @@ canvas{
     border-radius: var(--rounded);
     /*box-shadow: var(--shadow);*/
 }
-main h1{
+main{
+    display: grid;
+    grid-template-columns: auto;
+    grid-template-rows: auto;
+    grid-template-areas:
+        "header"
+        "main";
+}
+@media screen and (max-width: 500px){
+    :root{
+      font-size: 13px;
+      overflow-x: hidden;
+    }
+    main{
+        justify-items: center;
+        align-items: center;
+    }
+    
+}
+main > h1{
     text-align: center;
+    border-bottom: 0.5rem dashed #61422C;
+    padding-bottom: 0.5rem;
+    width: 80%;
+    grid-area: header;
+    justify-self: center;
+}
+section.color-activism{
+    justify-self: stretch;
+    align-self: stretch;
+    grid-area: main;
 }
 .color-show{
     height: 1rem;
