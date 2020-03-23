@@ -1,7 +1,7 @@
 :root{
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
     font-size: 20px;
-    --rounded: 2%;
+    --rounded: 3%;
     --shadow: 0.5px 0.5px 3px -1px rgba(100,100,100,0.4), 
     -0.5px -1px 3px -1px rgba(100,100,100,0.4);
 }
@@ -16,9 +16,11 @@
     justify-items: center;
     align-content: start;
 }
-canvas{
-    border-radius: var(--rounded);
-    /*box-shadow: var(--shadow);*/
+.profile-maker{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
 }
 main{
     display: grid;
@@ -27,9 +29,16 @@ main{
     grid-template-areas:
         "header"
         "main";
-    border: 1px solid black;
     padding: 3rem;
-    border-radius: var(--rounded);
+}
+
+header{
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 2rem;
+    width: 100vw;
+    background-color: #61422C;
 }
 @media screen and (max-width: 500px){
     :root{
@@ -106,5 +115,5 @@ section.color-activism{
     cursor: pointer;
 }
 *{
-    background-color: #fff3e6;
+    background-color: hsl(27, 60%, 97%);
 }

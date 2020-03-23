@@ -17,7 +17,6 @@ type attr = Feliz.prop
 //open Fable.React.Props
 
 open Colors
-open Polar
 open Drawing
 open Shape
 
@@ -38,23 +37,13 @@ let ctx = myCanvas.getContext_2d()
 // All these are immutables values
 let w = myCanvas.width
 let h = myCanvas.height
-let steps = 20
-let squareSize = 20
-
-// gridWidth needs a float wo we cast tour int operation to a float using the float keyword
-let gridWidth = float (steps * squareSize)
-
 
 // resize our canvas to the size of our grid
 // the arrow <- indicates we're mutating a value. It's a special operator in F#.
-myCanvas.width <- gridWidth
-myCanvas.height <- gridWidth
-
-// print the grid size to our debugger console
-printfn "Width: %f, height %f" w h
+myCanvas.width <- 400.
+myCanvas.height <- 400.
 
 ctx.lineWidth <- 2.0
-
 
 type PickerProps =
     | Colors of string [] //it's crucial to pass these as an Array NOT List
@@ -110,9 +99,6 @@ let newColor code colors =
 let refreshActiveColor state =
     let { ActiveColor = active; Colors = colors } = state
     { state with ActiveColor = { active with id = nextId colors } }
-
-
-
 
 let paint colors =
     let pointsTransform = profileSquares (200., 200.)
@@ -174,6 +160,18 @@ let mixButtons { ActiveColor = active } (dispatch: Msg -> unit): ReactElement =
                       attr.onTextChange (SetActive >> dispatch)
                       attr.valueOrDefault active.code ] ] ]
 
+let controls state dispatch =
+    Html.section [
+        attr.className "canvas-controls"
+        attr.children [
+            Html.select [
+                Html.option "Rectangle"
+                Html.option "Polygonal"
+                Html.option "Circular"
+            ]
+        ]
+    ]
+
 let render (state) (dispatch: Msg -> unit) =
     let { Colors = colors; ActiveColor = active } = state
 
@@ -187,7 +185,8 @@ let render (state) (dispatch: Msg -> unit) =
     Html.div
         [ attr.children
             [ colorDisplays state dispatch
-              mixButtons state dispatch ] ]
+              mixButtons state dispatch 
+              controls state dispatch] ]
 
 
 
