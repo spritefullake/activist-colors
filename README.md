@@ -2,7 +2,10 @@
 
 ## Why?
 
-All across the world, marginalized groups of people are subject to the cruelty of oppressors. And while we don't always have the power to stop injustice, **we can always start a movement to uphold justice**. I want to highlight some groups that are particularly marginalized and who often are given no voice in the mainstream media.
+All across the world, marginalized groups of people are subject to the cruelty of oppressors. And while we don't always have the power to stop injustice, **we can always start a movement to uphold justice**. 
+
+I want to highlight some peoples who have unduly suffered from things like war, state violence, forced expulsion, flotillas and blockades, ethnic cleansing and occupation. In all cases, these have been human-created injustices which threaten the humanity of others. I hope this reminds those of us in safe refuges that **there are still refugees who need a home** and there is still so much that can be done to help.
+
 
 ---
 

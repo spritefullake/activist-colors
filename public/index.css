@@ -27,6 +27,9 @@ main{
     grid-template-areas:
         "header"
         "main";
+    border: 1px solid black;
+    padding: 3rem;
+    border-radius: var(--rounded);
 }
 @media screen and (max-width: 500px){
     :root{
